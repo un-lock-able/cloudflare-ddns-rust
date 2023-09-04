@@ -1,5 +1,6 @@
-use serde::Deserialize;
+use crate::domain_record_changer::RecordType;
 use clap::Parser;
+use serde::Deserialize;
 
 #[derive(Deserialize)]
 pub struct DDNSSetings {
@@ -7,7 +8,6 @@ pub struct DDNSSetings {
     pub get_ip_urls: GetIPUrls,
     #[serde(rename = "domainSettings")]
     pub domain_settings: Vec<SingleDomainSettings>,
-    
 }
 
 #[derive(Deserialize)]
@@ -16,12 +16,6 @@ pub struct GetIPUrls {
     pub ipv4: String,
     #[serde(rename = "IPv6")]
     pub ipv6: String,
-}
-
-#[derive(Deserialize)]
-pub enum RecordType {
-    A,
-    AAAA,
 }
 
 #[derive(Deserialize)]
@@ -43,13 +37,18 @@ pub struct SingleDomainSettings {
 #[derive(Deserialize)]
 pub struct SubDomainSettings {
     pub name: String,
-    pub ttl: Option<u32>,
+    #[serde(default = "default_ttl")]
+    pub ttl: u32,
     #[serde(default = "default_proxied_choice")]
-    pub proxied: bool
+    pub proxied: bool,
 }
 
 fn default_proxied_choice() -> bool {
     true
+}
+
+fn default_ttl() -> u32 {
+    1
 }
 
 #[derive(Parser)]
