@@ -127,13 +127,13 @@ impl DomainRecordChanger {
             if record_detail.result_info.count == 0 {
                 if self.settings.create_new_record {
                     log::info!(
-                        "Record of type {} for {} does not exist. Will create new record.",
+                        "{} record for {} does not exist. Will create new record.",
                         self.settings.record_type,
                         full_domain_name
                     );
                 } else {
                     log::info!(
-                        "Record of type {} for {} does not exist. Will not create new record.",
+                        "{} record for {} does not exist. Will not create new record.",
                         self.settings.record_type,
                         full_domain_name
                     )
