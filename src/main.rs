@@ -52,14 +52,17 @@ fn main() {
 
     let ipv6_address = reqwest::blocking::get(settings.get_ip_urls.ipv6)
         .unwrap_or_else(|reason| {
-            log::error!("Get IPv4 address failed: {}", reason);
-            panic!("Get IPv4 address failed: {}", reason)
+            log::error!("Get IPv6 address failed: {}", reason);
+            panic!("Get IPv6 address failed: {}", reason)
         })
         .text()
         .unwrap_or_else(|reason| {
-            log::error!("Get IPv4 address failed: {}", reason);
-            panic!("Get IPv4 address failed: {}", reason)
+            log::error!("Get IPv6 address failed: {}", reason);
+            panic!("Get IPv6 address failed: {}", reason)
         });
 
-    println!("{}\r\n{}", ipv4_address, ipv6_address);
+    let ip_addresses = IpAddress {
+        ipv4: ipv4_address,
+        ipv6: ipv6_address,
+    };
 }
