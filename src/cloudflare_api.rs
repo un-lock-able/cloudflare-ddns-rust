@@ -1,20 +1,33 @@
-mod request {
+pub mod request {
     use serde::Serialize;
 
     use crate::domain_record_changer::RecordType;
 
     #[derive(Serialize)]
-    struct DescribeRecord {
-        name: String,
+    pub struct CreateRecord {
+        pub name: String,
+        pub content: String,
         #[serde(rename = "type")]
-        record_type: RecordType,
+        pub record_type: RecordType,
+        pub proxied: bool,
+        pub ttl: u32,
+    }
+
+    #[derive(Serialize)]
+    pub struct UpdateRecord {
+        pub name: String,
+        pub content: String,
+        #[serde(rename = "type")]
+        pub record_type: RecordType,
+        pub proxied: bool,
+        pub ttl: u32,
     }
 }
 
 pub mod response {
-    use serde::Deserialize;
     use crate::domain_record_changer::RecordType;
-    
+    use serde::Deserialize;
+
     #[derive(Deserialize, Debug)]
     pub struct RecordDetail {
         pub content: String,
@@ -25,7 +38,7 @@ pub mod response {
         pub id: String,
         pub locked: bool,
         pub proxiable: bool,
-        pub ttl: Option<u32>,
+        pub ttl: u32,
         pub zone_name: String,
     }
 
@@ -42,7 +55,7 @@ pub mod response {
         pub per_page: u32,
         pub total_count: u32,
     }
-    
+
     #[derive(Deserialize, Debug)]
     pub struct DescribeRecord {
         pub result: Vec<RecordDetail>,
@@ -52,7 +65,23 @@ pub mod response {
         pub result_info: ResultInfo,
     }
 
-    impl std::fmt::Display for CodeMessagePair{
+    #[derive(Deserialize)]
+    pub struct CreateRecord {
+        pub result: RecordDetail,
+        pub errors: Vec<CodeMessagePair>,
+        pub messages: Vec<CodeMessagePair>,
+        pub success: bool,
+    }
+
+    #[derive(Deserialize)]
+    pub struct UpdateRecord {
+        pub result: RecordDetail,
+        pub errors: Vec<CodeMessagePair>,
+        pub messages: Vec<CodeMessagePair>,
+        pub success: bool,
+    }
+
+    impl std::fmt::Display for CodeMessagePair {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "Code {}: {}", self.code, self.message)
         }
