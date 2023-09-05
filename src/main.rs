@@ -11,9 +11,25 @@ use std::{fs::File, io::BufReader, thread};
 fn main() {
     let args = config_parser::CmdArgs::parse();
 
-    let mut exe_path = std::env::current_exe().unwrap();
-    exe_path.pop();
-    let mut log_path = exe_path.clone();
+    let mut log_path: std::path::PathBuf;
+    
+    match args.log_dir {
+        Some(path) => log_path = std::path::Path::new(&path).into(),
+        None => {
+            let mut exe_path = std::env::current_exe().unwrap();
+            exe_path.pop();
+        
+            log_path = exe_path.clone();
+            log_path.push("logs");
+        }
+    }
+    
+    if !log_path.exists() {
+        if let Err(reason) =  std::fs::create_dir_all(&log_path) {
+            eprintln!("Error creating log file path {}: {}", log_path.display(), reason);
+            panic!("Error creating log file path {}: {}", log_path.display(), reason);
+        }
+    }
     log_path.push(Utc::now().format("%F-%H%M%S.log").to_string());
 
     if let Err(reason) = if args.debug {
@@ -28,9 +44,9 @@ fn main() {
 
     log::info!("DDNS script started.");
 
-    let settings_file = File::open(args.config).unwrap_or_else(|reason| {
-        log::error!("Open config file failed: {}", reason);
-        panic!("Open config file failed.");
+    let settings_file = File::open(&args.config).unwrap_or_else(|reason| {
+        log::error!("Open config file {} failed: {}", args.config, reason);
+        panic!("Open config file {} failed: {}", args.config, reason);
     });
 
     let settings_file_reader = BufReader::new(settings_file);

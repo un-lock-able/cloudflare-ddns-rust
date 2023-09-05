@@ -56,6 +56,11 @@ fn default_ttl() -> u32 {
 pub struct CmdArgs {
     #[arg(long, default_value_t = false)]
     pub debug: bool,
-    #[arg(short, long, default_value_t = String::from("cloudflareddnsSettings.json"))]
+    #[arg(short, long, required = true)]
     pub config: String,
+    #[arg(
+        long,
+        help = "Path to the directory that stores the logs. Defaults to the 'logs' directory in the program's directory. Will create new directory if not exist."
+    )]
+    pub log_dir: Option<String>,
 }
