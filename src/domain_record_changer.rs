@@ -385,12 +385,19 @@ impl DomainRecordChanger {
                     Ok(result) => result,
                     Err(_) => continue 'subdomain_iter,
                 };
-            
+
             if update_result.success {
-                log::info!("Updated {} record of {}.", self.settings.record_type, full_domain_name);
-            }
-            else {
-                log::error!("Update {} record of {} failed. Reason:", self.settings.record_type, full_domain_name);
+                log::info!(
+                    "Updated {} record of {}.",
+                    self.settings.record_type,
+                    full_domain_name
+                );
+            } else {
+                log::error!(
+                    "Update {} record of {} failed. Reason:",
+                    self.settings.record_type,
+                    full_domain_name
+                );
                 for code_message_pair in update_result.errors {
                     log::error!("{}", code_message_pair);
                 }
