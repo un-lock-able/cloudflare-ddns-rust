@@ -11,38 +11,39 @@ use std::{fs::File, io::BufReader, thread};
 fn main() {
     let args = config_parser::CmdArgs::parse();
 
-    let mut log_path: std::path::PathBuf;
-    
-    match args.log_dir {
-        Some(path) => log_path = std::path::Path::new(&path).into(),
-        None => {
-            let mut exe_path = std::env::current_exe().unwrap();
-            exe_path.pop();
-        
-            log_path = exe_path.clone();
-            log_path.push("logs");
-        }
-    }
-    
-    if !log_path.exists() {
-        if let Err(reason) =  std::fs::create_dir_all(&log_path) {
-            eprintln!("Error creating log file path {}: {}", log_path.display(), reason);
-            panic!("Error creating log file path {}: {}", log_path.display(), reason);
-        }
-    }
-    log_path.push(Utc::now().format("%F-%H%M%S.log").to_string());
+    let mut log_file_path: std::path::PathBuf;
 
-    if let Err(reason) = if args.debug {
+    match args.log_file {
+        Some(path) => log_file_path = std::path::Path::new(&path).into(),
+        None => {
+            let exe_path = std::env::current_exe().unwrap();
+
+            log_file_path = exe_path.clone();
+            log_file_path.pop();
+            log_file_path.push("ddnslog.log");
+        }
+    }
+
+    let log_file = std::fs::OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&log_file_path)
+        .unwrap_or_else(|reason| {
+            panic! {"Open log file {} failed: {}", log_file_path.display(), reason}
+        });
+
+    if args.debug {
         // simple_logging::log_to_stderr(LevelFilter::Debug);
-        simple_logging::log_to_file(log_path, LevelFilter::Debug)
+        simple_logging::log_to(log_file, LevelFilter::Debug)
     } else {
         // simple_logging::log_to_stderr(LevelFilter::Info);
-        simple_logging::log_to_file(log_path, LevelFilter::Info)
-    } {
-        panic!("Open log file failed: {}", reason);
+        simple_logging::log_to(log_file, LevelFilter::Info)
     }
 
-    log::info!("DDNS script started.");
+    log::info!(
+        "DDNS script started at {}.",
+        Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+    );
 
     let settings_file = File::open(&args.config).unwrap_or_else(|reason| {
         log::error!("Open config file {} failed: {}", args.config, reason);
@@ -70,8 +71,6 @@ fn main() {
             })
     });
 
-    
-
     let ipv6_address = thread::spawn(|| {
         reqwest::blocking::get(settings.get_ip_urls.ipv6)
             .unwrap_or_else(|reason| {
@@ -85,17 +84,14 @@ fn main() {
             })
     });
 
-    let ipv4_address = ipv4_address.join()
-    .unwrap_or_else(|_| {
+    let ipv4_address = ipv4_address.join().unwrap_or_else(|_| {
         log::error!("Get ipv4 address failed.");
         panic!("Get ipv4 address failed.")
     });
 
     log::info!("Got ipv4 address: {}", ipv4_address);
 
-    let ipv6_address = ipv6_address
-    .join()
-    .unwrap_or_else(|_| {
+    let ipv6_address = ipv6_address.join().unwrap_or_else(|_| {
         log::error!("Get ipv6 address failed.");
         panic!("Get ipv6 address failed.")
     });
@@ -114,7 +110,7 @@ fn main() {
     for single_domain_settings in settings.domain_settings {
         log::trace!("Create changer for {}", single_domain_settings.domain_name);
         let changer = DomainRecordChanger::new(single_domain_settings, ip_addresses.clone());
-        tasks.push(thread::spawn(move || {changer.start_ddns()}));
+        tasks.push(thread::spawn(move || changer.start_ddns()));
     }
 
     log::trace!("Creating tasks success");

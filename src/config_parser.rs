@@ -60,7 +60,7 @@ pub struct CmdArgs {
     pub config: String,
     #[arg(
         long,
-        help = "Path to the directory that stores the logs. Defaults to the 'logs' directory in the program's directory. Will create new directory if not exist."
+        help = "Path to the log file. Will create all the parent directory if none exist. Defaults to ddnslog.log file in the same directory as the excutable."
     )]
-    pub log_dir: Option<String>,
+    pub log_file: Option<String>,
 }
