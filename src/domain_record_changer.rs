@@ -2,13 +2,7 @@ use crate::config_parser::SingleDomainSettings;
 use crate::{cloudflare_api, config_parser::SubDomainSettings};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
-pub struct IpAddress {
-    pub ipv4: String,
-    pub ipv6: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum RecordType {
     A,
     AAAA,
@@ -16,12 +10,12 @@ pub enum RecordType {
 
 pub struct DomainRecordChanger {
     settings: SingleDomainSettings,
-    ip_address: IpAddress,
+    ip_address: String,
     reqwest_client: reqwest::blocking::Client,
 }
 
 impl DomainRecordChanger {
-    pub fn new(settings: SingleDomainSettings, ip_address: IpAddress) -> Self {
+    pub fn new(settings: SingleDomainSettings, ip_address: String) -> Self {
         DomainRecordChanger {
             settings,
             ip_address,
@@ -110,21 +104,12 @@ impl DomainRecordChanger {
             self.settings.zone_id
         );
 
-        let post_body = match self.settings.record_type {
-            RecordType::A => cloudflare_api::request::CreateRecord {
-                name: full_domain_name.clone(),
-                content: self.ip_address.ipv4.clone(),
-                record_type: RecordType::A,
-                proxied: subdomain_setting.proxied,
-                ttl: subdomain_setting.ttl,
-            },
-            RecordType::AAAA => cloudflare_api::request::CreateRecord {
-                name: full_domain_name.clone(),
-                content: self.ip_address.ipv6.clone(),
-                record_type: RecordType::AAAA,
-                proxied: subdomain_setting.proxied,
-                ttl: subdomain_setting.ttl,
-            },
+        let post_body = cloudflare_api::request::CreateRecord {
+            name: full_domain_name.clone(),
+            content: self.ip_address.clone(),
+            record_type: self.settings.record_type,
+            proxied: subdomain_setting.proxied,
+            ttl: subdomain_setting.ttl,
         };
 
         let post_body = match serde_json::to_string(&post_body) {
@@ -197,21 +182,12 @@ impl DomainRecordChanger {
             self.settings.zone_id, target_record_id
         );
 
-        let put_body = match self.settings.record_type {
-            RecordType::A => cloudflare_api::request::UpdateRecord {
-                name: full_domain_name.clone(),
-                content: self.ip_address.ipv4.clone(),
-                record_type: RecordType::A,
-                proxied: subdomain_setting.proxied,
-                ttl: subdomain_setting.ttl,
-            },
-            RecordType::AAAA => cloudflare_api::request::UpdateRecord {
-                name: full_domain_name.clone(),
-                content: self.ip_address.ipv6.clone(),
-                record_type: RecordType::AAAA,
-                proxied: subdomain_setting.proxied,
-                ttl: subdomain_setting.ttl,
-            },
+        let put_body = cloudflare_api::request::UpdateRecord {
+            name: full_domain_name.clone(),
+            content: self.ip_address.clone(),
+            record_type: self.settings.record_type,
+            proxied: subdomain_setting.proxied,
+            ttl: subdomain_setting.ttl,
         };
 
         let put_body = match serde_json::to_string(&put_body) {
@@ -360,12 +336,8 @@ impl DomainRecordChanger {
             }
 
             // There already exsists exactely one record. Check if the content mathces current ip, if not, update it.
-            let ip_address_is_same = match self.settings.record_type {
-                RecordType::A => self.ip_address.ipv4 == record_detail.result[0].content,
-                RecordType::AAAA => self.ip_address.ipv6 == record_detail.result[0].content,
-            };
 
-            if ip_address_is_same
+            if self.ip_address == record_detail.result[0].content
                 && subdomain_settings.ttl == record_detail.result[0].ttl
                 && subdomain_settings.proxied == record_detail.result[0].proxied
             {

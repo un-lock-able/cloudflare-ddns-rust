@@ -4,9 +4,11 @@ mod domain_record_changer;
 
 use chrono::Utc;
 use clap::Parser;
-use domain_record_changer::{DomainRecordChanger, IpAddress};
+use domain_record_changer::DomainRecordChanger;
 use log::LevelFilter;
 use std::{fs::File, io::BufReader, thread};
+
+use crate::domain_record_changer::RecordType;
 
 fn main() {
     let args = config_parser::CmdArgs::parse();
@@ -59,57 +61,92 @@ fn main() {
         });
 
     let ipv4_address = thread::spawn(|| {
-        reqwest::blocking::get(settings.get_ip_urls.ipv4)
-            .unwrap_or_else(|reason| {
-                log::error!("Get IPv4 address failed: {}", reason);
-                panic!("Get IPv4 address failed: {}", reason)
-            })
-            .text()
-            .unwrap_or_else(|reason| {
-                log::error!("Get IPv4 address failed: {}", reason);
-                panic!("Get IPv4 address failed: {}", reason)
-            })
+        let result = match reqwest::blocking::get(settings.get_ip_urls.ipv4) {
+            Ok(content) => content,
+            Err(reason) => {
+                log::error!(
+                    "Get IPv4 address failed: {}. Will not update any A record.",
+                    reason
+                );
+                return Err(());
+            }
+        };
+        let result = match result.text() {
+            Ok(content) => content,
+            Err(reason) => {
+                log::error!(
+                    "Get IPv4 address failed: {}. Will not update any A record.",
+                    reason
+                );
+                return Err(());
+            }
+        };
+        return Ok(result);
     });
 
     let ipv6_address = thread::spawn(|| {
-        reqwest::blocking::get(settings.get_ip_urls.ipv6)
-            .unwrap_or_else(|reason| {
-                log::error!("Get IPv6 address failed: {}", reason);
-                panic!("Get IPv6 address failed: {}", reason)
-            })
-            .text()
-            .unwrap_or_else(|reason| {
-                log::error!("Get IPv6 address failed: {}", reason);
-                panic!("Get IPv6 address failed: {}", reason)
-            })
+        let result = match reqwest::blocking::get(settings.get_ip_urls.ipv6) {
+            Ok(content) => content,
+            Err(reason) => {
+                log::error!(
+                    "Get IPv6 address failed: {}. Will not update any AAAA record.",
+                    reason
+                );
+                return Err(());
+            }
+        };
+        let result = match result.text() {
+            Ok(content) => content,
+            Err(reason) => {
+                log::error!(
+                    "Get IPv6 address failed: {}. Will not update any AAAA record.",
+                    reason
+                );
+                return Err(());
+            }
+        };
+        return Ok(result);
     });
 
     let ipv4_address = ipv4_address.join().unwrap_or_else(|_| {
-        log::error!("Get ipv4 address failed.");
-        panic!("Get ipv4 address failed.")
+        log::error!("Get ipv4 address failed: thread exited abnormally.");
+        return Err(());
     });
 
-    log::info!("Got ipv4 address: {}", ipv4_address);
+    if let Ok(address) = &ipv4_address {
+        log::info!("Got ipv4 address: {}", address);
+    }
 
     let ipv6_address = ipv6_address.join().unwrap_or_else(|_| {
-        log::error!("Get ipv6 address failed.");
-        panic!("Get ipv6 address failed.")
+        log::error!("Get ipv6 address failed: thread exited abnormally.");
+        return Err(());
     });
 
-    log::info!("Got ipv6 address: {}", ipv6_address);
-
-    let ip_addresses = IpAddress {
-        ipv4: ipv4_address,
-        ipv6: ipv6_address,
-    };
+    if let Ok(address) = &ipv6_address {
+        log::info!("Got ipv6 address: {}", address);
+    }
 
     let mut tasks = Vec::new();
 
-    log::trace!("Start creating tasks.");
-
     for single_domain_settings in settings.domain_settings {
-        log::trace!("Create changer for {}", single_domain_settings.domain_name);
-        let changer = DomainRecordChanger::new(single_domain_settings, ip_addresses.clone());
+        let current_ip_address: &String;
+        match single_domain_settings.record_type {
+            RecordType::A => match &ipv4_address {
+                Ok(address) => current_ip_address = address,
+                Err(_) => {
+                    log::error!("Skipping A record update for {} as a result of previously failed ip address aquisition.", single_domain_settings.domain_name);
+                    continue;
+                }
+            },
+            RecordType::AAAA => match &ipv6_address {
+                Ok(address) => current_ip_address = address,
+                Err(_) => {
+                    log::error!("Skipping AAAA record update for {} as a result of previously failed ip address aquisition.", single_domain_settings.domain_name);
+                    continue;
+                }
+            },
+        }
+        let changer = DomainRecordChanger::new(single_domain_settings, current_ip_address.clone());
         tasks.push(thread::spawn(move || changer.start_ddns()));
     }
 
