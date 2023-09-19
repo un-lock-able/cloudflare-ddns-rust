@@ -126,8 +126,17 @@ fn main() {
         log::info!("Got ipv6 address: {}", address);
     }
 
-    let mut tasks = Vec::new();
+    // let mut tasks = Vec::new();
 
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(args.thread_number.into())
+        .build()
+        .unwrap_or_else(|reason| {
+            log::error!("Create thread pool failed: {}", reason);
+            panic!("Create thread pool failed: {}", reason)
+        });
+
+    pool.scope(|s| {
     for single_domain_settings in settings.domain_settings {
         let current_ip_address: &String;
         match single_domain_settings.record_type {
@@ -147,15 +156,9 @@ fn main() {
             },
         }
         let changer = DomainRecordChanger::new(single_domain_settings, current_ip_address.clone());
-        tasks.push(thread::spawn(move || changer.start_ddns()));
+        s.spawn(|_| {changer.start_ddns();});
     }
-
-    log::trace!("Creating tasks success");
-
-    for task in tasks {
-        task.join()
-            .unwrap_or_else(|_| log::error!("Async function error."));
-    }
+});
 
     log::info!("DDNS script ended.");
 }

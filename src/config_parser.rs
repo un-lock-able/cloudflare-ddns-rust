@@ -63,4 +63,10 @@ pub struct CmdArgs {
         help = "Path to the log file. Will create all the parent directory if none exist. Defaults to ddnslog.log file in the same directory as the excutable."
     )]
     pub log_file: Option<String>,
+    #[arg(
+        short = 'n',
+        help = "The number of threads used to update the domains. Default to 4.",
+        default_value_t = 4
+    )]
+    pub thread_number: u8,
 }
