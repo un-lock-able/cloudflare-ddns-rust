@@ -124,7 +124,7 @@ fn main() {
             let content_ip = content.parse::<Ipv4Addr>();
             match content_ip {
                 Ok(address) => {
-                    log::debug!("Got ipv3 addres: {}", address.to_string());
+                    log::debug!("Got ipv4 addres: {}", address.to_string());
                     Ok(address)
                 }
                 Err(_) => {
