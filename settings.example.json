@@ -8,11 +8,11 @@
     "domainSettings": [
         {
             "enabled": false,
+            "domainName": "example.com",
             "zoneID": "your_zone_ID",
             "apiToken": "your_api_token",
             "recordType": "AAAA",
             "createNewRecord": true,
-            "domainName": "example.com",
             "subdomains": [
                 {
                     "name": "test"
@@ -21,11 +21,11 @@
         },
         {
             "enabled": true,
+            "domainName": "example.com",
             "zoneID": "your_zone_ID",
             "apiToken": "your_api_token",
             "recordType": "A",
             "createNewRecord": false,
-            "domainName": "example.com",
             "subdomains": [
                 {
                     "name": "test",
