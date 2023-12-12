@@ -6,6 +6,7 @@ use chrono::Utc;
 use clap::Parser;
 use domain_record_changer::DomainRecordChanger;
 use log::LevelFilter;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::{fs::File, io::BufReader, thread};
 
 use crate::domain_record_changer::RecordType;
@@ -113,20 +114,48 @@ fn main() {
         return Err(());
     });
 
-    if let Ok(address) = &ipv4_address {
-        log::debug!("Got ipv4 address: {}", address);
-    }
-
     let ipv6_address = ipv6_address.join().unwrap_or_else(|_| {
         log::error!("Get ipv6 address failed: thread exited abnormally.");
         return Err(());
     });
 
-    if let Ok(address) = &ipv6_address {
-        log::debug!("Got ipv6 address: {}", address);
-    }
+    let ipv4_address = match ipv4_address {
+        Ok(content) => {
+            let content_ip = content.parse::<Ipv4Addr>();
+            match content_ip {
+                Ok(address) => {
+                    log::debug!("Got ipv3 addres: {}", address.to_string());
+                    Ok(address)
+                }
+                Err(_) => {
+                    log::error!(
+                        "Content returned from the ipv4 api cannot be parsed as an IPv4 address. Content: {}", content
+                    );
+                    Err(())
+                }
+            }
+        }
+        Err(_) => Err(()),
+    };
 
-    // let mut tasks = Vec::new();
+    let ipv6_address = match ipv6_address {
+        Ok(content) => {
+            let content_ip = content.parse::<Ipv6Addr>();
+            match content_ip {
+                Ok(address) => {
+                    log::debug!("Got ipv6 address: {}", address.to_string());
+                    Ok(address)
+                }
+                Err(_) => {
+                    log::error!(
+                        "Content returned from the ipv6 api cannot be parsed as an IPv4 address. Content: {}", content
+                    );
+                    Err(())
+                }
+            }
+        }
+        Err(_) => Err(()),
+    };
 
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(args.thread_number.into())
@@ -138,17 +167,17 @@ fn main() {
 
     pool.scope(|s| {
     for single_domain_settings in settings.domain_settings {
-        let current_ip_address: &String;
+        let current_ip_address: IpAddr;
         match single_domain_settings.record_type {
             RecordType::A => match &ipv4_address {
-                Ok(address) => current_ip_address = address,
+                Ok(address) => current_ip_address = IpAddr::V4(*address),
                 Err(_) => {
                     log::error!("Skipping A record update for {} as a result of previously failed ip address aquisition.", single_domain_settings.domain_name);
                     continue;
                 }
             },
             RecordType::AAAA => match &ipv6_address {
-                Ok(address) => current_ip_address = address,
+                Ok(address) => current_ip_address = IpAddr::V6(*address),
                 Err(_) => {
                     log::error!("Skipping AAAA record update for {} as a result of previously failed ip address aquisition.", single_domain_settings.domain_name);
                     continue;

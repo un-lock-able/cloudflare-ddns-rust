@@ -1,6 +1,7 @@
 use crate::config_parser::SingleDomainSettings;
 use crate::{cloudflare_api, config_parser::SubDomainSettings};
 use serde::{Deserialize, Serialize};
+use std::net::{Ipv6Addr, IpAddr};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum RecordType {
@@ -10,12 +11,12 @@ pub enum RecordType {
 
 pub struct DomainRecordChanger {
     settings: SingleDomainSettings,
-    ip_address: String,
+    ip_address: IpAddr,
     reqwest_client: reqwest::blocking::Client,
 }
 
 impl DomainRecordChanger {
-    pub fn new(settings: SingleDomainSettings, ip_address: String) -> Self {
+    pub fn new(settings: SingleDomainSettings, ip_address: IpAddr) -> Self {
         DomainRecordChanger {
             settings,
             ip_address,
@@ -92,6 +93,7 @@ impl DomainRecordChanger {
         &self,
         full_domain_name: &String,
         subdomain_setting: &SubDomainSettings,
+        content_ip_address: &String,
     ) -> Result<cloudflare_api::response::CreateRecord, ()> {
         log::debug!(
             "Create {} record for {}",
@@ -106,7 +108,7 @@ impl DomainRecordChanger {
 
         let post_body = cloudflare_api::request::CreateRecord {
             name: full_domain_name.clone(),
-            content: self.ip_address.clone(),
+            content: content_ip_address.clone(),
             record_type: self.settings.record_type,
             proxied: subdomain_setting.proxied,
             ttl: subdomain_setting.ttl,
@@ -170,6 +172,7 @@ impl DomainRecordChanger {
         full_domain_name: &String,
         subdomain_setting: &SubDomainSettings,
         target_record_id: &String,
+        content_ip_address: &String,
     ) -> Result<cloudflare_api::response::UpdateRecord, ()> {
         log::debug!(
             "Update {} record for {}",
@@ -184,7 +187,7 @@ impl DomainRecordChanger {
 
         let put_body = cloudflare_api::request::UpdateRecord {
             name: full_domain_name.clone(),
-            content: self.ip_address.clone(),
+            content: content_ip_address.clone(),
             record_type: self.settings.record_type,
             proxied: subdomain_setting.proxied,
             ttl: subdomain_setting.ttl,
@@ -260,7 +263,7 @@ impl DomainRecordChanger {
 
         'subdomain_iter: for subdomain_settings in &self.settings.subdomains {
             let full_domain_name: String;
-
+            
             if subdomain_settings.name == "@" || subdomain_settings.name == "" {
                 full_domain_name = self.settings.domain_name.clone();
             } else {
@@ -268,6 +271,38 @@ impl DomainRecordChanger {
                     format!("{}.{}", subdomain_settings.name, &self.settings.domain_name);
             }
             log::debug!("Start DDNS for {}", full_domain_name);
+
+            // Convert the ip address to string to be sent by api request.
+            let content_ip = match self.ip_address {
+                IpAddr::V4(v4_address) => v4_address.to_string(), 
+                IpAddr::V6(mut v6_address) => {
+                    if let Some(custom_interface_id) = &subdomain_settings.interface_id {
+                        log::debug!("The custom interface id for {} exists: {}", full_domain_name, custom_interface_id);
+                        let mut v6_address_arr = v6_address.segments();
+
+                        let interface_addr = custom_interface_id.parse::<Ipv6Addr>();
+                        if interface_addr.is_err() {
+                            log::error!("The custom interface id for {} cannot be parsed into a valid ipv6 addr. Settings string: {}.", full_domain_name, custom_interface_id);
+                            continue 'subdomain_iter;
+                        }
+                        // Now interface_addr is definitely Ok()
+                        let interface_addr = interface_addr.unwrap();
+                        let interface_addr_arr = interface_addr.segments();
+
+                        // Check if the first 64 bit is 0.
+                        if interface_addr_arr.iter().take(4).fold(0, |accu, cur| accu + cur) != 0 {
+                            log::warn!("The first 64 bit of the interface id is not 0. They are ignored.");
+                        }
+                        
+                        // Copy the last 8 btyes into v6_address_arr and compose a new v6 address.
+                        v6_address_arr[4..8].copy_from_slice(&interface_addr_arr[4..8]);
+                        v6_address = Ipv6Addr::from(v6_address_arr);
+                        log::debug!("The ip for {} will be {}, different from current machine's ip.", full_domain_name, v6_address.to_string());
+                    }
+                    v6_address.to_string()
+                }
+            };
+
 
             // Get the information
             let record_detail = match self.get_record_status(&full_domain_name) {
@@ -295,7 +330,7 @@ impl DomainRecordChanger {
                         full_domain_name
                     );
                     let create_result =
-                        match self.create_new_record(&full_domain_name, &subdomain_settings) {
+                        match self.create_new_record(&full_domain_name, &subdomain_settings, &content_ip) {
                             Ok(result) => result,
                             Err(_) => continue 'subdomain_iter,
                         };
@@ -337,7 +372,7 @@ impl DomainRecordChanger {
 
             // There already exsists exactely one record. Check if the content mathces current ip, if not, update it.
 
-            if self.ip_address == record_detail.result[0].content
+            if self.ip_address.to_string() == record_detail.result[0].content
                 && subdomain_settings.ttl == record_detail.result[0].ttl
                 && subdomain_settings.proxied == record_detail.result[0].proxied
             {
@@ -352,7 +387,7 @@ impl DomainRecordChanger {
             let target_record_id = record_detail.result[0].id.clone();
 
             let update_result =
-                match self.update_record(&full_domain_name, &subdomain_settings, &target_record_id)
+                match self.update_record(&full_domain_name, &subdomain_settings, &target_record_id, &content_ip)
                 {
                     Ok(result) => result,
                     Err(_) => continue 'subdomain_iter,

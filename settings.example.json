@@ -1,0 +1,38 @@
+{
+    "getIPUrls": {
+        "IPv4": "https://api4.ipify.org",
+        "//": "https://api-ipv4.ip.sb/ip",
+        "IPv6": "https://api6.ipify.org",
+        "//": "https://api-ipv6.ip.sb/ip"
+    },
+    "domainSettings": [
+        {
+            "enabled": false,
+            "zoneID": "your_zone_ID",
+            "apiToken": "your_api_token",
+            "recordType": "AAAA",
+            "createNewRecord": true,
+            "domainName": "example.com",
+            "subdomains": [
+                {
+                    "name": "test"
+                }
+            ]
+        },
+        {
+            "enabled": true,
+            "zoneID": "your_zone_ID",
+            "apiToken": "your_api_token",
+            "recordType": "A",
+            "createNewRecord": false,
+            "domainName": "example.com",
+            "subdomains": [
+                {
+                    "name": "test",
+                    "proxied": false,
+                    "interfaceID": "::2903"
+                }
+            ]
+        }
+    ]
+}

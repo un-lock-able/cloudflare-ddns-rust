@@ -41,6 +41,8 @@ pub struct SubDomainSettings {
     pub ttl: u32,
     #[serde(default = "default_proxied_choice")]
     pub proxied: bool,
+    #[serde(rename = "interfaceID")]
+    pub interface_id: Option<String>,
 }
 
 fn default_proxied_choice() -> bool {
