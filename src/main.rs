@@ -42,7 +42,7 @@ fn main() {
         simple_logging::log_to(log_file, LevelFilter::Info)
     }
 
-    log::info!(
+    log::debug!(
         "DDNS script started at {}.",
         Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
     );
@@ -114,7 +114,7 @@ fn main() {
     });
 
     if let Ok(address) = &ipv4_address {
-        log::info!("Got ipv4 address: {}", address);
+        log::debug!("Got ipv4 address: {}", address);
     }
 
     let ipv6_address = ipv6_address.join().unwrap_or_else(|_| {
@@ -123,7 +123,7 @@ fn main() {
     });
 
     if let Ok(address) = &ipv6_address {
-        log::info!("Got ipv6 address: {}", address);
+        log::debug!("Got ipv6 address: {}", address);
     }
 
     // let mut tasks = Vec::new();
@@ -160,5 +160,5 @@ fn main() {
     }
 });
 
-    log::info!("DDNS script ended.");
+    log::debug!("DDNS script ended.");
 }
