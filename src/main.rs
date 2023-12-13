@@ -9,6 +9,16 @@ use log::LevelFilter;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::{fs::File, io::BufReader, thread};
 
+use log4rs::{
+    append::{
+        console::{ConsoleAppender, Target},
+        file::FileAppender,
+    },
+    config::{Appender, Config, Root},
+    encode::pattern::PatternEncoder,
+    filter::threshold::ThresholdFilter,
+};
+
 use crate::domain_record_changer::RecordType;
 
 fn main() {
@@ -27,21 +37,50 @@ fn main() {
         }
     }
 
-    let log_file = std::fs::OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open(&log_file_path)
+    let log_level = if args.debug {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
+    };
+
+    let stderr = ConsoleAppender::builder()
+        .target(Target::Stderr)
+        .encoder(Box::new(PatternEncoder::new(
+            "[{d(%Y-%m-%d %H:%M:%S %Z)(utc)}] {i} {h({l})} {m}\n",
+        )))
+        .build();
+
+    let logfile = FileAppender::builder()
+        // Pattern: https://docs.rs/log4rs/*/log4rs/encode/pattern/index.html
+        .encoder(Box::new(PatternEncoder::new(
+            "[{d(%Y-%m-%d %H:%M:%S %Z)(utc)}] {i} {h({l})} {m}\n",
+        )))
+        .build(&log_file_path)
         .unwrap_or_else(|reason| {
             panic! {"Open log file {} failed: {}", log_file_path.display(), reason}
         });
 
-    if args.debug {
-        // simple_logging::log_to_stderr(LevelFilter::Debug);
-        simple_logging::log_to(log_file, LevelFilter::Debug)
-    } else {
-        // simple_logging::log_to_stderr(LevelFilter::Info);
-        simple_logging::log_to(log_file, LevelFilter::Info)
-    }
+    let config = Config::builder()
+        .appender(
+            Appender::builder()
+                .filter(Box::new(ThresholdFilter::new(log_level)))
+                .build("logfile", Box::new(logfile)),
+        )
+        .appender(
+            Appender::builder()
+                .filter(Box::new(ThresholdFilter::new(log_level)))
+                .build("stderr", Box::new(stderr)),
+        )
+        .build(
+            Root::builder()
+                .appender("logfile")
+                .appender("stderr")
+                .build(LevelFilter::Trace),
+        )
+        .unwrap_or_else(|reason| panic!("Setup log settings filed: {}", reason));
+
+    let _log_handle = log4rs::init_config(config)
+        .unwrap_or_else(|reason| panic!("Setup log settings filed: {}", reason));
 
     log::debug!(
         "DDNS script started at {}.",
