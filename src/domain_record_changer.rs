@@ -372,7 +372,7 @@ impl DomainRecordChanger {
 
             // There already exsists exactely one record. Check if the content mathces current ip, if not, update it.
 
-            if self.ip_address.to_string() == record_detail.result[0].content
+            if content_ip == record_detail.result[0].content
                 && subdomain_settings.ttl == record_detail.result[0].ttl
                 && subdomain_settings.proxied == record_detail.result[0].proxied
             {
