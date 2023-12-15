@@ -64,12 +64,12 @@ This script does not accept config from command line arguments. Please be sure t
 Usage: cloudflare-ddns-rust [OPTIONS] --config <CONFIG>
 
 Options:
-      --debug                
-  -c, --config <CONFIG>      
-      --log-file <LOG_FILE>  Path to the log file. Will create all the parent directory if none exist. Defaults to ddnslog.log file in the same directory as the excutable.
-  -n <THREAD_NUMBER>         The number of threads used to update the domains. Default to 4. [default: 4]
-  -h, --help                 Print help
-  -V, --version              Print version
+  -c, --config <CONFIG>        
+      --log-file <LOG_FILE>    Write log to file. Will create all parent folder if not exist.
+      --log-level <LOG_LEVEL>  Specify the log level. [default: info] [possible values: trace, debug, info, warn, error]
+  -n <THREAD_NUMBER>           The number of threads used to update the domains. [default: 4]
+  -h, --help                   Print help
+  -V, --version                Print version
 ```
 
 Among all of these options, the most important one would be `-c` or `--config` for specifying the location of the config file. This is the only argument that is required.
@@ -84,7 +84,7 @@ crontab -e
 ```
 will open crontab's config file with your default editor. Then add
 ```
-*/10 * * * * /absolute/path/to/executable -c /absolute/path/to/config/file
+*/10 * * * * /absolute/path/to/executable -c /absolute/path/to/config/file --log-file /absolute/path/to/log/file
 ```
 to the end of the file. This will run the script every 10 minutes.
 
