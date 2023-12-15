@@ -24,25 +24,6 @@ use crate::domain_record_changer::RecordType;
 fn main() {
     let args = config_parser::CmdArgs::parse();
 
-    // let mut log_file_path: std::path::PathBuf;
-
-    // match args.log_file {
-    //     Some(path) => log_file_path = std::path::Path::new(&path).into(),
-    //     None => {
-    //         let exe_path = std::env::current_exe().unwrap();
-
-    //         log_file_path = exe_path.clone();
-    //         log_file_path.pop();
-    //         log_file_path.push("ddnslog.log");
-    //     }
-    // }
-
-    // let log_level = if args.debug {
-    //     LevelFilter::Debug
-    // } else {
-    //     LevelFilter::Info
-    // };
-
     let stderr = ConsoleAppender::builder()
         .target(Target::Stderr)
         .encoder(Box::new(PatternEncoder::new(
@@ -79,16 +60,7 @@ fn main() {
         );
         root_builder = root_builder.appender("logfile");
     }
-
-    // let logfile = FileAppender::builder()
-    //     // Pattern: https://docs.rs/log4rs/*/log4rs/encode/pattern/index.html
-    //     .encoder(Box::new(PatternEncoder::new(
-    //         "[{d(%Y-%m-%d %H:%M:%S %Z)(utc)}] {i} {h({l})} {m}\n",
-    //     )))
-    //     .build(&log_file_path)
-    //     .unwrap_or_else(|reason| {
-    //         panic! {"Open log file {} failed: {}", log_file_path.display(), reason}
-    //     });
+    
     let log_root = root_builder.build(LevelFilter::Trace);
 
     let config = config_builder
