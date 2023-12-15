@@ -24,24 +24,24 @@ use crate::domain_record_changer::RecordType;
 fn main() {
     let args = config_parser::CmdArgs::parse();
 
-    let mut log_file_path: std::path::PathBuf;
+    // let mut log_file_path: std::path::PathBuf;
 
-    match args.log_file {
-        Some(path) => log_file_path = std::path::Path::new(&path).into(),
-        None => {
-            let exe_path = std::env::current_exe().unwrap();
+    // match args.log_file {
+    //     Some(path) => log_file_path = std::path::Path::new(&path).into(),
+    //     None => {
+    //         let exe_path = std::env::current_exe().unwrap();
 
-            log_file_path = exe_path.clone();
-            log_file_path.pop();
-            log_file_path.push("ddnslog.log");
-        }
-    }
+    //         log_file_path = exe_path.clone();
+    //         log_file_path.pop();
+    //         log_file_path.push("ddnslog.log");
+    //     }
+    // }
 
-    let log_level = if args.debug {
-        LevelFilter::Debug
-    } else {
-        LevelFilter::Info
-    };
+    // let log_level = if args.debug {
+    //     LevelFilter::Debug
+    // } else {
+    //     LevelFilter::Info
+    // };
 
     let stderr = ConsoleAppender::builder()
         .target(Target::Stderr)
@@ -50,39 +50,55 @@ fn main() {
         )))
         .build();
 
-    let logfile = FileAppender::builder()
-        // Pattern: https://docs.rs/log4rs/*/log4rs/encode/pattern/index.html
-        .encoder(Box::new(PatternEncoder::new(
-            "[{d(%Y-%m-%d %H:%M:%S %Z)(utc)}] {i} {h({l})} {m}\n",
-        )))
-        .build(&log_file_path)
-        .unwrap_or_else(|reason| {
-            panic! {"Open log file {} failed: {}", log_file_path.display(), reason}
-        });
+    let mut config_builder = Config::builder().appender(
+        Appender::builder()
+            .filter(Box::new(ThresholdFilter::new(
+                args.log_level.clone().into(),
+            )))
+            .build("stderr", Box::new(stderr)),
+    );
 
-    let config = Config::builder()
-        .appender(
+    let mut root_builder = Root::builder().appender("stderr");
+
+    if let Some(log_file_name) = args.log_file {
+        let log_file_appender = FileAppender::builder()
+            // Pattern: https://docs.rs/log4rs/*/log4rs/encode/pattern/index.html
+            .encoder(Box::new(PatternEncoder::new(
+                "[{d(%Y-%m-%d %H:%M:%S %Z)(utc)}] {i} {h({l})} {m}\n",
+            )))
+            .build(&log_file_name)
+            .unwrap_or_else(|reason| {
+                panic! {"Open log file {} failed: {}", log_file_name, reason}
+            });
+        config_builder = config_builder.appender(
             Appender::builder()
-                .filter(Box::new(ThresholdFilter::new(log_level)))
-                .build("logfile", Box::new(logfile)),
-        )
-        .appender(
-            Appender::builder()
-                .filter(Box::new(ThresholdFilter::new(log_level)))
-                .build("stderr", Box::new(stderr)),
-        )
-        .build(
-            Root::builder()
-                .appender("logfile")
-                .appender("stderr")
-                .build(LevelFilter::Trace),
-        )
+                .filter(Box::new(ThresholdFilter::new(
+                    args.log_level.clone().into(),
+                )))
+                .build("logfile", Box::new(log_file_appender)),
+        );
+        root_builder = root_builder.appender("logfile");
+    }
+
+    // let logfile = FileAppender::builder()
+    //     // Pattern: https://docs.rs/log4rs/*/log4rs/encode/pattern/index.html
+    //     .encoder(Box::new(PatternEncoder::new(
+    //         "[{d(%Y-%m-%d %H:%M:%S %Z)(utc)}] {i} {h({l})} {m}\n",
+    //     )))
+    //     .build(&log_file_path)
+    //     .unwrap_or_else(|reason| {
+    //         panic! {"Open log file {} failed: {}", log_file_path.display(), reason}
+    //     });
+    let log_root = root_builder.build(LevelFilter::Trace);
+
+    let config = config_builder
+        .build(log_root)
         .unwrap_or_else(|reason| panic!("Setup log settings filed: {}", reason));
 
     let _log_handle = log4rs::init_config(config)
         .unwrap_or_else(|reason| panic!("Setup log settings filed: {}", reason));
 
-    log::debug!(
+    log::info!(
         "DDNS script started at {}.",
         Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
     );
@@ -163,7 +179,7 @@ fn main() {
             let content_ip = content.parse::<Ipv4Addr>();
             match content_ip {
                 Ok(address) => {
-                    log::debug!("Got ipv4 addres: {}", address.to_string());
+                    log::info!("Got ipv4 addres: {}", address.to_string());
                     Ok(address)
                 }
                 Err(_) => {
@@ -182,7 +198,7 @@ fn main() {
             let content_ip = content.parse::<Ipv6Addr>();
             match content_ip {
                 Ok(address) => {
-                    log::debug!("Got ipv6 address: {}", address.to_string());
+                    log::info!("Got ipv6 address: {}", address.to_string());
                     Ok(address)
                 }
                 Err(_) => {
@@ -228,5 +244,5 @@ fn main() {
     }
 });
 
-    log::debug!("DDNS script ended.");
+    log::info!("DDNS script ended.");
 }
