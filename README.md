@@ -76,9 +76,69 @@ Among all of these options, the most important one would be `-c` or `--config` f
 
 ## Periodially run the script using crontab
 
+### On Windows
+
 On windows, one can easily configure the system to run the script periodically using task scheduler.
 
-On linux, we can configure crontab to periodically run the script for us. Type 
+### On Linux
+
+#### Using systemd timer
+
+We can set up a `systemd` timer to run the script periodically. The benefit of using systemd instead of crontab (which will be introduced below) is that systemd treats all the outputs in the `stdout` of the script as log and there is no need to manually designate the location of log files.
+
+First, create the service file `cloudflare-ddns.timer` in directory `/etc/systemd/system`, this will serve as the timer file loaded to the systemd.
+```
+# /etc/systemd/system/cloudflare-ddns.timer
+[Unit]
+Description=Timer for Cloudflare ddns script
+
+[Timer]
+OnCalendar=*-*-* *:0/10:*
+# This will let the timer to be triggered every 10 minutes
+# Refer to https://man.archlinux.org/man/systemd.time.7#CALENDAR%20EVENTS for some further explanations about the meanings of the calendar events.
+
+[Install]
+WantedBy=timers.target
+```
+
+Then, create the file `cloudflare-ddns.service` in the same directory. Note that the name of the `.timer` file and this `.service` file should be the same except for their respective ending, or you have to designate the name of the corresponding `.service` file in the `.timer` file explicitly.
+
+```
+# /etc/systemd/system/cloudflare-ddns.service
+[Unit]
+Description=Cloudflare ddns script
+
+[Service]
+ExecStart=/absolute/path/to/script -c /absolute/path/to/config/file
+Type=exec
+User=<runner_user>
+Group=<runner_group>
+```
+
+Where the `<runner_user>` and `<runner_group>` should be a regular user or a dedicated user, never root.
+
+Now, the timer and the corresponding service have been created, enable the timer (not the service!) by
+```shell
+systemctl enable cloudflare-ddns.timer
+```
+
+and the start the time by
+```shell
+systemctl start cloudflare-ddns.timer
+```
+
+the status of all timers could be checked by the command 
+```shell
+systemctl list-timers
+```
+
+and the log of the script could be accessed using
+```shell
+systemctl status cloudflare-ddns.service
+```
+
+#### Using crontab
+Alternatively, we can configure crontab to periodically run the script for us. Type 
 ```shell
 crontab -e
 ```
