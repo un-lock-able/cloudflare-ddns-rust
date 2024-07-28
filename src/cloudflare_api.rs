@@ -36,7 +36,7 @@ pub mod response {
         #[serde(rename = "type")]
         pub record_type: RecordType,
         pub id: String,
-        pub locked: bool,
+        pub locked: Option<bool>,
         pub proxiable: bool,
         pub ttl: u32,
         pub zone_name: String,
