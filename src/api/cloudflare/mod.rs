@@ -25,7 +25,7 @@ pub struct CloudflareInterface {
 
 impl CloudflareInterface {
     fn get_full_domain(subdomain: &str, base_domain: &str) -> String {
-        if subdomain == "@" || subdomain == "" {
+        if subdomain == "@" || subdomain.is_empty() {
             base_domain.to_string()
         } else {
             format!("{}.{}", subdomain, base_domain)

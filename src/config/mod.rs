@@ -8,14 +8,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum RecordType {
     A,
-    AAAA,
+    #[serde(rename = "AAAA")]
+    Aaaa,
 }
 
 impl std::fmt::Display for RecordType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             RecordType::A => write!(f, "A"),
-            RecordType::AAAA => write!(f, "AAAA"),
+            RecordType::Aaaa => write!(f, "AAAA"),
         }
     }
 }
@@ -24,7 +25,7 @@ impl From<IpAddr> for RecordType {
     fn from(value: IpAddr) -> Self {
         match value {
             IpAddr::V4(_) => Self::A,
-            IpAddr::V6(_) => Self::AAAA,
+            IpAddr::V6(_) => Self::Aaaa,
         }
     }
 }

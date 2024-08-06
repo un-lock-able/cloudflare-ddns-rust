@@ -22,14 +22,14 @@ impl std::fmt::Display for LogLevel {
     }
 }
 
-impl std::convert::Into<LevelFilter> for LogLevel {
-    fn into(self) -> LevelFilter {
-        match self {
-            Self::Trace => LevelFilter::Trace,
-            Self::Debug => LevelFilter::Debug,
-            Self::Info => LevelFilter::Info,
-            Self::Warn => LevelFilter::Warn,
-            Self::Error => LevelFilter::Error,
+impl std::convert::From<LogLevel> for LevelFilter {
+    fn from(val: LogLevel) -> Self {
+        match val {
+            LogLevel::Trace => LevelFilter::Trace,
+            LogLevel::Debug => LevelFilter::Debug,
+            LogLevel::Info => LevelFilter::Info,
+            LogLevel::Warn => LevelFilter::Warn,
+            LogLevel::Error => LevelFilter::Error,
         }
     }
 }

@@ -59,17 +59,16 @@ where
             Err(message) => {
                 log::error!("Authorize api failed: {}", message);
                 return;
-            },
+            }
         }
 
         'subdomain_iter: for subdomain_settings in &self.subdomains {
-            let full_domain_name: String;
-
-            if subdomain_settings.name == "@" || subdomain_settings.name == "" {
-                full_domain_name = self.domain_name.clone();
-            } else {
-                full_domain_name = format!("{}.{}", subdomain_settings.name, &self.domain_name);
-            }
+            let full_domain_name =
+                if subdomain_settings.name == "@" || subdomain_settings.name.is_empty() {
+                    self.domain_name.clone()
+                } else {
+                    format!("{}.{}", subdomain_settings.name, &self.domain_name)
+                };
             log::debug!("Start DDNS for {}", full_domain_name);
 
             // Convert the ip address to ip to be sent by api request.
@@ -97,8 +96,7 @@ where
                         if interface_addr_arr
                             .iter()
                             .take(4)
-                            .fold(0, |accu, cur| accu + cur)
-                            != 0
+                            .sum::<u16>() != 0
                         {
                             log::warn!(
                                 "The first 64 bits of the interface id are not 0. They are ignored."
