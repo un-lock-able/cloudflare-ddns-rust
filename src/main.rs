@@ -1,7 +1,13 @@
-mod cloudflare_api;
-mod config_parser;
+// mod cloudflare_api;
+// mod config_parser;
+// mod domain_record_changer;
+
+mod api;
+mod config;
 mod domain_record_changer;
 
+use api::cloudflare::CloudflareInterface;
+use api::{ApiInterface, ServiceProvider};
 use chrono::Utc;
 use clap::Parser;
 use domain_record_changer::DomainRecordChanger;
@@ -19,10 +25,10 @@ use log4rs::{
     filter::threshold::ThresholdFilter,
 };
 
-use crate::domain_record_changer::RecordType;
+use config::RecordType;
 
 fn main() {
-    let args = config_parser::CmdArgs::parse();
+    let args = config::cmd::CmdArgs::parse();
 
     let stderr = ConsoleAppender::builder()
         .target(Target::Stderr)
@@ -60,7 +66,7 @@ fn main() {
         );
         root_builder = root_builder.appender("logfile");
     }
-    
+
     let log_root = root_builder.build(LevelFilter::Trace);
 
     let config = config_builder
@@ -82,11 +88,13 @@ fn main() {
 
     let settings_file_reader = BufReader::new(settings_file);
 
-    let settings: config_parser::DDNSSetings = serde_json::from_reader(settings_file_reader)
-        .unwrap_or_else(|_| {
-            log::error!("Parse config file failed");
-            panic!("Parse config file faied");
-        });
+    let settings: config::file::DDNSSetings = match serde_json::from_reader(settings_file_reader) {
+        Ok(settings) => settings,
+        Err(reason) => {
+            log::error!("Parse config file failed: {}", reason);
+            return;
+        }
+    };
 
     let ipv4_address = thread::spawn(|| {
         let result = match reqwest::blocking::get(settings.get_ip_urls.ipv4) {
@@ -193,28 +201,28 @@ fn main() {
         });
 
     pool.scope(|s| {
-    for single_domain_settings in settings.domain_settings {
-        let current_ip_address: IpAddr;
-        match single_domain_settings.record_type {
-            RecordType::A => match &ipv4_address {
-                Ok(address) => current_ip_address = IpAddr::V4(*address),
-                Err(_) => {
-                    log::error!("Skipping A record update for {} as a result of previously failed ip address aquisition.", single_domain_settings.domain_name);
-                    continue;
-                }
-            },
-            RecordType::AAAA => match &ipv6_address {
-                Ok(address) => current_ip_address = IpAddr::V6(*address),
-                Err(_) => {
-                    log::error!("Skipping AAAA record update for {} as a result of previously failed ip address aquisition.", single_domain_settings.domain_name);
-                    continue;
-                }
-            },
+        for single_domain_settings in settings.domain_settings {
+            let current_ip_address: IpAddr = match single_domain_settings.record_type {
+                RecordType::A => match &ipv4_address {
+                    Ok(address) => IpAddr::V4(*address),
+                    Err(_) => {
+                        log::error!("Skipping A record update for {} as a result of previously failed ip address aquisition.", single_domain_settings.domain_name);
+                        continue;
+                    }
+                },
+                RecordType::AAAA => match &ipv6_address {
+                    Ok(address) => IpAddr::V6(*address),
+                    Err(_) => {
+                        log::error!("Skipping AAAA record update for {} as a result of previously failed ip address aquisition.", single_domain_settings.domain_name);
+                        continue;
+                    }
+                },
+            };
+            let mut changer = match single_domain_settings.service_provider.clone() {
+                ServiceProvider::Cloudflare(build_config) => DomainRecordChanger::new(single_domain_settings, current_ip_address.clone(), CloudflareInterface::new(build_config))
+            };
+            s.spawn(move |_| {changer.start_ddns();});
         }
-        let changer = DomainRecordChanger::new(single_domain_settings, current_ip_address.clone());
-        s.spawn(|_| {changer.start_ddns();});
-    }
-});
-
+    });
     log::info!("DDNS script ended.");
 }
