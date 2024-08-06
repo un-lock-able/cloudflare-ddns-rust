@@ -117,7 +117,7 @@ fn main() {
                 return Err(());
             }
         };
-        return Ok(result);
+        Ok(result)
     });
 
     let ipv6_address = thread::spawn(|| {
@@ -141,17 +141,17 @@ fn main() {
                 return Err(());
             }
         };
-        return Ok(result);
+        Ok(result)
     });
 
     let ipv4_address = ipv4_address.join().unwrap_or_else(|_| {
         log::error!("Get ipv4 address failed: thread exited abnormally.");
-        return Err(());
+        Err(())
     });
 
     let ipv6_address = ipv6_address.join().unwrap_or_else(|_| {
         log::error!("Get ipv6 address failed: thread exited abnormally.");
-        return Err(());
+        Err(())
     });
 
     let ipv4_address = match ipv4_address {
@@ -210,7 +210,7 @@ fn main() {
                         continue;
                     }
                 },
-                RecordType::AAAA => match &ipv6_address {
+                RecordType::Aaaa => match &ipv6_address {
                     Ok(address) => IpAddr::V6(*address),
                     Err(_) => {
                         log::error!("Skipping AAAA record update for {} as a result of previously failed ip address aquisition.", single_domain_settings.domain_name);
@@ -219,7 +219,7 @@ fn main() {
                 },
             };
             let mut changer = match single_domain_settings.service_provider.clone() {
-                ServiceProvider::Cloudflare(build_config) => DomainRecordChanger::new(single_domain_settings, current_ip_address.clone(), CloudflareInterface::new(build_config))
+                ServiceProvider::Cloudflare(build_config) => DomainRecordChanger::new(single_domain_settings, current_ip_address, CloudflareInterface::new(build_config))
             };
             s.spawn(move |_| {changer.start_ddns();});
         }
