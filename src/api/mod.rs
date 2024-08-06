@@ -7,7 +7,7 @@ use serde::Deserialize;
 /// A enum representing all supported service provider and their build config. Should be deserialized from
 /// config file.
 #[derive(Deserialize, Clone)]
-#[serde(tag = "provider", rename_all = "lowercase")]
+#[serde(tag = "provider_name", rename_all = "lowercase")]
 pub enum ServiceProvider {
     Cloudflare(cloudflare::CloudflareInterfaceBuildConfig),
 }

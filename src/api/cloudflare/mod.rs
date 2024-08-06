@@ -214,13 +214,6 @@ impl ApiInterface for CloudflareInterface {
             ));
         }
 
-        if full_domain_name != create_result.result.name {
-            return Err(format!(
-                "Api returned domain name {} mismaches the request domain name {}",
-                create_result.result.name, full_domain_name
-            ));
-        }
-
         Ok(())
     }
 

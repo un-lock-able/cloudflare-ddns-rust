@@ -76,7 +76,8 @@ pub mod response {
 
     #[derive(Deserialize, Debug)]
     pub struct CreateRecord {
-        pub result: RecordDetail,
+        // if success is false, the result may be null!
+        pub result: Option<RecordDetail>,
         pub errors: Vec<CodeMessagePair>,
         pub messages: Vec<CodeMessagePair>,
         pub success: bool,
@@ -84,7 +85,8 @@ pub mod response {
 
     #[derive(Deserialize, Debug)]
     pub struct UpdateRecord {
-        pub result: RecordDetail,
+        // if success is false, the result may be null!
+        pub result: Option<RecordDetail>,
         pub errors: Vec<CodeMessagePair>,
         pub messages: Vec<CodeMessagePair>,
         pub success: bool,
