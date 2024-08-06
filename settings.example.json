@@ -1,36 +1,43 @@
 {
-    "getIPUrls": {
-        "IPv4": "https://api4.ipify.org",
+    "get_ip_urls": {
+        "ipv4": "https://api4.ipify.org",
         "//": "https://api-ipv4.ip.sb/ip",
-        "IPv6": "https://api6.ipify.org",
+        "ipv6": "https://api6.ipify.org",
         "//": "https://api-ipv6.ip.sb/ip"
     },
-    "domainSettings": [
+    "domain_settings": [
         {
             "enabled": false,
             "domainName": "example.com",
-            "zoneID": "your_zone_ID",
-            "apiToken": "your_api_token",
+            "service_provider": {
+                "provider_name": "cloudflare",
+                "zone_id": "your_zone_ID",
+                "api_token": "your_api_token"
+            },
             "recordType": "AAAA",
             "createNewRecord": true,
             "subdomains": [
                 {
-                    "name": "test"
+                    "name": "test",
+                    "interfaceID": "::2903"
                 }
             ]
         },
         {
             "enabled": true,
             "domainName": "example.com",
-            "zoneID": "your_zone_ID",
-            "apiToken": "your_api_token",
+            "service_provider": {
+                "provider_name": "cloudflare",
+                "zone_id": "your_zone_ID",
+                "api_token": "your_api_token"
+            },
             "recordType": "A",
             "createNewRecord": false,
             "subdomains": [
                 {
                     "name": "test",
                     "proxied": false,
-                    "interfaceID": "::2903"
+                    "ttl": 1
                 }
             ]
         }
