@@ -93,11 +93,7 @@ where
                         let interface_addr_arr = interface_addr.segments();
 
                         // Check if the first 64 bit is 0.
-                        if interface_addr_arr
-                            .iter()
-                            .take(4)
-                            .sum::<u16>() != 0
-                        {
+                        if interface_addr_arr.iter().take(4).sum::<u16>() != 0 {
                             log::warn!(
                                 "The first 64 bits of the interface id are not 0. They are ignored."
                             );

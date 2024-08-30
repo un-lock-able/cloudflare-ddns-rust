@@ -1,5 +1,6 @@
 /target
 *.log
 *.local.json
+*.local.toml
 Cargo.lock
 .DS_Store

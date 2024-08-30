@@ -1,19 +1,24 @@
 use crate::{api::ServiceProvider, RecordType};
 use serde::Deserialize;
 
-#[derive(Deserialize)]
+pub enum FileType {
+    Json,
+    Toml,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct DDNSSetings {
     pub get_ip_urls: GetIPUrls,
     pub domain_settings: Vec<SingleDomainSettings>,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct GetIPUrls {
     pub ipv4: String,
     pub ipv6: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct SingleDomainSettings {
     pub enabled: bool,
     pub domain_name: String,
@@ -28,7 +33,7 @@ fn default_create_new_record() -> bool {
     true
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct SubDomainSettings {
     pub name: String,
     #[serde(default = "default_ttl")]

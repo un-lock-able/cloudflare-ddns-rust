@@ -1,0 +1,54 @@
+# This is a dictionary for retrieving IP addresses of current machine
+[get_ip_urls]
+ipv4 = "https://api4.ipify.org"
+ipv6 = "https://api6.ipify.org"
+
+# Every [[domain_settings]] is a settings object for one single domain with type AAAA or A. If you want both
+# record types, please create two of [[domain_settings]].
+[[domain_settings]]
+# Whether DDNS for this settings object is enabled.
+enabled = true
+# The base domain name of this entry
+domain_name = "example.com"
+# Record type. Use AAAA for IPv6, A for IPv4. Only these two values are accepted.
+record_type = "AAAA"
+# Whether create new record when there is no record associated with the specified domain.
+create_new_record = true
+
+# This is the service provider settings specific to this [[domain_settings]]
+[domain_settings.service_provider]
+# Currently supported provider is only cloudflare.
+provider_name = "cloudflare"
+# The following fields are specific to the service provider you choose.
+zone_id = "your_zone_id"
+api_token = "your_api_token"
+
+# Every [[domain_settings.subdomains]] is a setting for one subdomain under current domain_name, which in this case is example.com.
+[[domain_settings.subdomains]]
+# Subdomain name. For example, this entry is for ifrit.example.com
+name = "ifrit"
+# The interface id used for generating actual ip written in the record. Refer to README.md for details
+interface_id = "::2903"
+
+[[domain_settings.subdomains]]
+# Both "" and "@" will stand for example.com
+name = "@"
+# This option only takes effect when provider is cloudflare. Refer to README.md for details.
+proxied = false
+# Record ttl
+ttl = 38400
+
+# This is just to demonstrate that you can add infinity many domain settings by providing [[domain_settings]] multiple times
+[[domain_settings]]
+enabled = false
+domain_name = "example2.com"
+record_type = "A"
+create_new_record = false
+
+[domain_settings.service_provider]
+provider_name = "cloudflare"
+zone_id = "your_zone_id"
+api_token = "your_api_token"
+
+[[domain_settings.subdomains]]
+name = "www"

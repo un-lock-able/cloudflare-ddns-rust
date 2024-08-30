@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 /// A enum representing all supported service provider and their build config. Should be deserialized from
 /// config file.
-#[derive(Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(tag = "provider_name", rename_all = "lowercase")]
 pub enum ServiceProvider {
     Cloudflare(cloudflare::CloudflareInterfaceBuildConfig),
@@ -28,7 +28,8 @@ impl PartialEq for RecordDetail {
         let subdomain_name_eq = self.subdomain_name == other.subdomain_name;
         let base_domain_name_eq = self.base_domain_name == other.base_domain_name;
         let ttl_eq = self.ttl == other.ttl;
-        let proxied_eq = self.proxied.is_none() || other.proxied.is_none() || self.proxied == other.proxied;
+        let proxied_eq =
+            self.proxied.is_none() || other.proxied.is_none() || self.proxied == other.proxied;
         let ip_addr_eq = self.ip_addr == other.ip_addr;
         subdomain_name_eq && base_domain_name_eq && ttl_eq && proxied_eq && ip_addr_eq
     }
