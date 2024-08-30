@@ -12,8 +12,10 @@ use chrono::Utc;
 use clap::Parser;
 use domain_record_changer::DomainRecordChanger;
 use log::LevelFilter;
+use std::fs;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use std::{fs::File, io::BufReader, thread};
+use std::path::Path;
+use std::thread;
 
 use log4rs::{
     append::{
@@ -81,20 +83,62 @@ fn main() {
         Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
     );
 
-    let settings_file = File::open(&args.config).unwrap_or_else(|reason| {
-        log::error!("Open config file {} failed: {}", args.config, reason);
-        panic!("Open config file {} failed: {}", args.config, reason);
-    });
+    let settings_file_path = Path::new(&args.config);
 
-    let settings_file_reader = BufReader::new(settings_file);
-
-    let settings: config::file::DDNSSetings = match serde_json::from_reader(settings_file_reader) {
-        Ok(settings) => settings,
-        Err(reason) => {
-            log::error!("Parse config file failed: {}", reason);
+    let settings_file_extension = match settings_file_path.extension() {
+        Some(ext) => ext,
+        None => {
+            log::error!(
+                "Config file {} has no extension.",
+                settings_file_path.to_string_lossy()
+            );
             return;
         }
     };
+
+    let settings_file_extension = match settings_file_extension.to_str() {
+        Some(ext) => ext,
+        None => {
+            log::error!("Config file extension is not a valid utf-8 string");
+            return;
+        }
+    };
+
+    let settings_file_type = match settings_file_extension {
+        "json" => config::file::FileType::Json,
+        "toml" => config::file::FileType::Toml,
+        _ => {
+            log::error!("Config file extension is not in supported.");
+            return;
+        }
+    };
+
+    let settings_file_string = match fs::read_to_string(settings_file_path) {
+        Ok(str) => str,
+        Err(e) => {
+            log::error!("Cannot read config file: {}", e);
+            return;
+        }
+    };
+
+    let settings: config::file::DDNSSetings = match settings_file_type {
+        config::file::FileType::Json => match serde_json::from_str(&settings_file_string) {
+            Ok(settings) => settings,
+            Err(e) => {
+                log::error!("JSON file parse error: {}", e);
+                return;
+            }
+        },
+        config::file::FileType::Toml => match toml::from_str(&settings_file_string) {
+            Ok(settings) => settings,
+            Err(e) => {
+                log::error!("TOML file parse error: {}", e);
+                return;
+            }
+        },
+    };
+
+    log::debug!("Deserialized settings object: {:?}", settings);
 
     let ipv4_address = thread::spawn(|| {
         let result = match reqwest::blocking::get(settings.get_ip_urls.ipv4) {

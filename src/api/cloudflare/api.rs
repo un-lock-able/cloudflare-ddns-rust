@@ -34,12 +34,14 @@ pub mod response {
     }
 
     #[derive(Deserialize, Debug)]
+    #[allow(dead_code)]
     pub struct MetaInfo {
         pub auto_added: Option<bool>,
         pub source: Option<String>,
     }
 
     #[derive(Deserialize, Debug)]
+    #[allow(dead_code)]
     pub struct ResultInfo {
         pub count: u32,
         pub page: u32,
@@ -48,6 +50,7 @@ pub mod response {
     }
 
     #[derive(Deserialize, Debug)]
+    #[allow(dead_code)]
     pub struct RecordDetail {
         pub content: String,
         pub name: String,
@@ -66,6 +69,7 @@ pub mod response {
     }
 
     #[derive(Deserialize, Debug)]
+    #[allow(dead_code)]
     pub struct DescribeRecord {
         pub result: Vec<RecordDetail>,
         pub errors: Vec<CodeMessagePair>,
@@ -75,6 +79,7 @@ pub mod response {
     }
 
     #[derive(Deserialize, Debug)]
+    #[allow(dead_code)]
     pub struct CreateRecord {
         // if success is false, the result may be null!
         pub result: Option<RecordDetail>,
@@ -84,6 +89,7 @@ pub mod response {
     }
 
     #[derive(Deserialize, Debug)]
+    #[allow(dead_code)]
     pub struct UpdateRecord {
         // if success is false, the result may be null!
         pub result: Option<RecordDetail>,
