@@ -200,7 +200,7 @@ fn main() {
 
     let ipv4_address = match ipv4_address {
         Ok(content) => {
-            let content_ip = content.parse::<Ipv4Addr>();
+            let content_ip = content.trim().parse::<Ipv4Addr>();
             match content_ip {
                 Ok(address) => {
                     log::info!("Got ipv4 addres: {}", address.to_string());
@@ -219,7 +219,7 @@ fn main() {
 
     let ipv6_address = match ipv6_address {
         Ok(content) => {
-            let content_ip = content.parse::<Ipv6Addr>();
+            let content_ip = content.trim().parse::<Ipv6Addr>();
             match content_ip {
                 Ok(address) => {
                     log::info!("Got ipv6 address: {}", address.to_string());
