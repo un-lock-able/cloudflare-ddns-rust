@@ -65,7 +65,6 @@ pub mod response {
         pub proxiable: bool,
         pub tags: Vec<String>,
         pub ttl: u32,
-        pub zone_name: String,
     }
 
     #[derive(Deserialize, Debug)]
