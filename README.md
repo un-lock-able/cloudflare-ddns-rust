@@ -2,7 +2,7 @@
 
 This is a project to enable ddns on any platform capable of compiling rust. Currently, only clouflare is supported. However, implementations for apis of other service providers are welcomed.
 
-You may first want to read about how to [configure](#customize-the-settings) it, [learn about command line arguments](#command-line-arguments) and you may want to [run it periodically](#periodially-run-the-script-using-crontab).
+You may first want to read about how to [configure](#customize-the-settings) it, [learn about command line arguments](#command-line-arguments) and you may want to [install it and periodically run it](#install).
 
 ## Customize the settings
 
@@ -17,6 +17,7 @@ If you need a more detailed information on the schema of the json, below are det
 ### Base object
 
 This is the base object of the config file.
+
 | Field Name | Required | Description |
 | :---------------- | :------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `get_ip_urls` | Yes | An [object](#config-for-urls-for-retriving-public-ip) storing the api urls for retriving the current server's public ip address. |
@@ -55,6 +56,7 @@ Back to parent: [Base config object](#base-object).
 This object provides settings to authenticate the ddns client to the api. Use the `provider_name` to specify the service provider of this domain, and then provide all the field required by that api.
 
 As of now, only cloudflare is supported.
+
 | Filed Name | Required | Description |
 | :-------------- | :------: | ---------------------------------------------------------------------------- |
 | `provider_name` | Yes | A string of the name of the service provider. Possible values: `cloudflare`. |
@@ -83,11 +85,11 @@ Back to parent: [Single domain config](#config-for-every-single-domain).
 
 ## Command line arguments
 
-This script does not accept config from command line arguments. Please be sure to [configure your DDNS](#configuring-the-settings) before you run the application.
+This script does not accept config from command line arguments. Please be sure to [configure your DDNS](#customize-the-settings) before you run the application.
 
 `cloudflare-ddns-rust --help` gives
 
-```
+```text
 Usage: cloudflare-ddns-rust [OPTIONS] --config <CONFIG>
 
 Options:
@@ -101,89 +103,15 @@ Options:
 
 Among all of these options, the most important one would be `-c` or `--config` for specifying the location of the config file. This is the only argument that is required.
 
-## Periodially run the script
+## Install
 
 ### On Windows
 
-On windows, one can easily configure the system to run the script periodically using task scheduler.
+On windows, one can easily configure the system to run the script periodically using task scheduler. The binary can be place at any place.
 
 ### On Linux
 
-#### Using systemd timer
-
-We can set up a `systemd` timer to run the script periodically. The benefit of using systemd instead of crontab (which will be introduced below) is that systemd treats all the outputs in the `stdout` of the script as log and there is no need to manually designate the location of log files.
-
-First, create the service file `cloudflare-ddns.timer` in directory `/etc/systemd/system`, this will serve as the timer file loaded to the systemd.
-
-```
-# /etc/systemd/system/cloudflare-ddns.timer
-[Unit]
-Description=Timer for Cloudflare ddns script
-
-[Timer]
-OnCalendar=*-*-* *:0/10:*
-# This will let the timer to be triggered every 10 minutes
-# Refer to https://man.archlinux.org/man/systemd.time.7#CALENDAR%20EVENTS for some further explanations about the meanings of the calendar events.
-
-[Install]
-WantedBy=timers.target
-```
-
-Then, create the file `cloudflare-ddns.service` in the same directory. Note that the name of the `.timer` file and this `.service` file should be the same except for their respective ending, or you have to designate the name of the corresponding `.service` file in the `.timer` file explicitly.
-
-```
-# /etc/systemd/system/cloudflare-ddns.service
-[Unit]
-Description=Cloudflare ddns script
-
-[Service]
-ExecStart=/absolute/path/to/script -c /absolute/path/to/config/file
-Type=exec
-User=<runner_user>
-Group=<runner_group>
-```
-
-Where the `<runner_user>` and `<runner_group>` should be a regular user or a dedicated user, never root.
-
-Now, the timer and the corresponding service have been created, enable the timer (not the service!) by
-
-```shell
-systemctl enable cloudflare-ddns.timer
-```
-
-and the start the time by
-
-```shell
-systemctl start cloudflare-ddns.timer
-```
-
-the status of all timers could be checked by the command
-
-```shell
-systemctl list-timers
-```
-
-and the log of the script could be accessed using
-
-```shell
-systemctl status cloudflare-ddns.service
-```
-
-#### Using crontab
-
-Alternatively, we can configure crontab to periodically run the script for us. Type
-
-```shell
-crontab -e
-```
-
-will open crontab's config file with your default editor. Then add
-
-```
-*/10 * * * * /absolute/path/to/executable -c /absolute/path/to/config/file --log-file /absolute/path/to/log/file
-```
-
-to the end of the file. This will run the script every 10 minutes.
+This repos provides a script `install.sh` to install the binary as a way to quickly set up DDNS. It builds the scripts, then copy the built binary to `/usr/local/bin`, and asks for whether to install and enable a systemd timer file to periodically run DDNS. The installed systemd unit files are in the `systemd` folder. Once the script finishes, place the config file (`settings.toml`) in `~/.config/cloudflare-ddns-rust/` and the timer will run every 10 minutes.
 
 ## Build the project
 

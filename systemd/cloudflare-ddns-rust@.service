@@ -1,0 +1,9 @@
+# /etc/systemd/system/cloudflare-ddns@.service
+[Unit]
+Description=Cloudflare ddns script
+
+[Service]
+ExecStart=/usr/local/bin/cloudflare-ddns-rust -c /home/%i/.config/cloudflare-ddns-rust/settings.toml
+Type=exec
+User=%i
+Group=%i
