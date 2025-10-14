@@ -1,0 +1,17 @@
+# /etc/systemd/system/cloudflare-ddns@.timer
+[Unit]
+Description=Timer for Cloudflare ddns script
+
+[Timer]
+# This will let the timer to be triggered every 10 minutes
+# Refer to https://man.archlinux.org/man/systemd.time.7#CALENDAR%20EVENTS for some further explanations about the meanings of the calendar events.
+OnCalendar=*-*-* *:0/10:*
+
+# Or you can use this to activate the timer every 10min, first starting from 1min after boot
+# OnBootSec=1min
+# OnUnitActiveSec=10min
+
+Unit=cloudflare-ddns-rust@%i.service
+
+[Install]
+WantedBy=timers.target
